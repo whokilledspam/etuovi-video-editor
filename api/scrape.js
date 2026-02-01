@@ -34,31 +34,74 @@ export default async function handler(req, res) {
 
     const html = await response.text();
 
-    // Extract property images - look for the full path pattern with \u002F encoding
-    // Pattern: d3ls91xgksobn.cloudfront.net\u002F{imageParameters}\u002Fetuovimedia\u002Fimages\u002Fproperty\u002Fimport\u002F...
+    // Extract images with their room tags
     const imagePattern = /d3ls91xgksobn\.cloudfront\.net\\u002F\{imageParameters\}\\u002Fetuovimedia\\u002Fimages\\u002Fproperty\\u002Fimport\\u002F([^"]+?)\\u002FORIGINAL\.jpeg/g;
     const matches = [...html.matchAll(imagePattern)];
 
-    // Extract unique image paths
     const imagePaths = new Set();
     for (const match of matches) {
-      // Decode the \u002F to /
       const path = match[1].replace(/\\u002F/g, '/');
       imagePaths.add(path);
     }
 
-    // Build full image URLs with high resolution parameters
     const images = Array.from(imagePaths).map(path =>
       `https://d3ls91xgksobn.cloudfront.net/1920x1920,fit,q90/etuovimedia/images/property/import/${path}/ORIGINAL.jpeg`
     );
 
-    // Also try to extract directly linked images (non-encoded format)
-    const directPattern = /d3ls91xgksobn\.cloudfront\.net\/[^"]+?\/etuovimedia\/images\/property\/import\/([^"]+?\/ORIGINAL\.jpeg)/g;
-    const directMatches = [...html.matchAll(directPattern)];
-    for (const match of directMatches) {
-      const fullUrl = `https://d3ls91xgksobn.cloudfront.net/1920x1920,fit,q90/etuovimedia/images/property/import/${match[1]}`;
-      if (!images.includes(fullUrl)) {
-        images.push(fullUrl);
+    // Extract image tags/rooms from the data
+    const imageTagPattern = /"imageTag":"([^"]+)"/g;
+    const tagMatches = [...html.matchAll(imageTagPattern)];
+    const imageTags = tagMatches.map(m => m[1]);
+
+    // Extract room descriptions
+    const roomDescriptions = {};
+    
+    // Kitchen
+    const kitchenMatch = html.match(/"kitchenDescription":"([^"]+)"/);
+    if (kitchenMatch) {
+      roomDescriptions.kitchen = cleanDescription(kitchenMatch[1]);
+    }
+    
+    // Living room
+    const livingRoomMatch = html.match(/"livingRoomDescription":"([^"]+)"/);
+    if (livingRoomMatch) {
+      roomDescriptions.livingRoom = cleanDescription(livingRoomMatch[1]);
+    }
+    
+    // Bedroom
+    const bedroomMatch = html.match(/"bedroomDescription":"([^"]+)"/);
+    if (bedroomMatch) {
+      roomDescriptions.bedroom = cleanDescription(bedroomMatch[1]);
+    }
+    
+    // Sauna
+    const saunaMatch = html.match(/"saunaDescription":"([^"]+)"/);
+    if (saunaMatch) {
+      roomDescriptions.sauna = cleanDescription(saunaMatch[1]);
+    }
+    
+    // Bathroom/WC
+    const toiletMatch = html.match(/"toiletDescription":"([^"]+)"/);
+    if (toiletMatch) {
+      roomDescriptions.bathroom = cleanDescription(toiletMatch[1]);
+    }
+    
+    // Other spaces
+    const otherSpaceMatch = html.match(/"otherSpaceDescription":"([^"]+)"/);
+    if (otherSpaceMatch) {
+      roomDescriptions.other = cleanDescription(otherSpaceMatch[1]);
+    }
+
+    // Extract main description
+    const mainDescMatch = html.match(/<p[^>]*class="[^"]*HOsH9IY[^"]*"[^>]*>([^<]+)</);
+    let mainDescription = '';
+    if (mainDescMatch) {
+      mainDescription = mainDescMatch[1];
+    } else {
+      // Try to extract from JSON
+      const descJsonMatch = html.match(/"description":"([^"]{100,})"/);
+      if (descJsonMatch) {
+        mainDescription = cleanDescription(descJsonMatch[1]);
       }
     }
 
@@ -66,11 +109,11 @@ export default async function handler(req, res) {
     const titleMatch = html.match(/<title>([^<]+)<\/title>/);
     const title = titleMatch ? titleMatch[1].split(' | ')[0] : 'Property';
 
-    // Extract price - look for the main price display
+    // Extract price
     const priceMatch = html.match(/(\d{1,3}(?:\s?\d{3})*)\s*€/);
     const price = priceMatch ? priceMatch[1].replace(/\s/g, ' ') + ' €' : '';
 
-    // Extract address from the page
+    // Extract address
     const addressMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/);
     const address = addressMatch ? addressMatch[1].trim() : '';
 
@@ -78,16 +121,134 @@ export default async function handler(req, res) {
     const sizeMatch = html.match(/(\d+(?:,\d+)?)\s*m²/);
     const size = sizeMatch ? sizeMatch[0] : '';
 
+    // Extract year
+    const yearMatch = html.match(/"constructionFinishedYear":(\d{4})/);
+    const year = yearMatch ? yearMatch[1] : '';
+
+    // Extract room count
+    const roomCountMatch = html.match(/"bedroomCount":(\d+)/);
+    const bedroomCount = roomCountMatch ? parseInt(roomCountMatch[1]) : 0;
+
+    // Extract condition
+    const conditionMatch = html.match(/"overallCondition":"([^"]+)"/);
+    const condition = conditionMatch ? conditionMatch[1] : '';
+
+    // Generate punchy one-liners for rooms
+    const roomCaptions = generateRoomCaptions(roomDescriptions, {
+      price, size, year, bedroomCount, condition, address
+    });
+
     return res.status(200).json({
       images,
+      imageTags,
       title,
       price,
       address,
       size,
+      year,
+      bedroomCount,
+      condition,
+      mainDescription,
+      roomDescriptions,
+      roomCaptions,
       count: images.length
     });
   } catch (error) {
     console.error('Scrape error:', error);
     return res.status(500).json({ error: 'Failed to scrape page' });
   }
+}
+
+function cleanDescription(text) {
+  return text
+    .replace(/\\n/g, '\n')
+    .replace(/\\u002F/g, '/')
+    .replace(/\\"/g, '"')
+    .trim();
+}
+
+function generateRoomCaptions(roomDescriptions, propertyInfo) {
+  const captions = {};
+  
+  // Kitchen caption
+  if (roomDescriptions.kitchen) {
+    const desc = roomDescriptions.kitchen.toLowerCase();
+    if (desc.includes('remontoitu') || desc.includes('uusittu')) {
+      captions.kitchen = 'Uudistettu keittiö ✨';
+    } else if (desc.includes('tilava') || desc.includes('iso')) {
+      captions.kitchen = 'Tilava keittiö ruokailuun 🍽️';
+    } else if (desc.includes('perinteinen')) {
+      captions.kitchen = 'Tunnelmallinen keittiö 🏠';
+    } else {
+      captions.kitchen = 'Kodin sydän 💛';
+    }
+  }
+  
+  // Living room caption
+  if (roomDescriptions.livingRoom) {
+    const desc = roomDescriptions.livingRoom.toLowerCase();
+    if (desc.includes('takka')) {
+      captions.livingRoom = 'Takkahuone tunnelmaan 🔥';
+    } else if (desc.includes('tilava') || desc.includes('avara')) {
+      captions.livingRoom = 'Avara olohuone 🛋️';
+    } else if (desc.includes('valoisa')) {
+      captions.livingRoom = 'Valoisa olohuone ☀️';
+    } else {
+      captions.livingRoom = 'Viihtyisä olohuone 🏡';
+    }
+  }
+  
+  // Bedroom caption
+  if (roomDescriptions.bedroom) {
+    const desc = roomDescriptions.bedroom.toLowerCase();
+    if (desc.includes('säilytystila') || desc.includes('kaapisto')) {
+      captions.bedroom = 'Makuuhuone + runsas säilytystila 👔';
+    } else if (desc.includes('tilava') || desc.includes('iso')) {
+      captions.bedroom = 'Tilava makuuhuone 🛏️';
+    } else {
+      captions.bedroom = 'Rauhallinen makuuhuone 😴';
+    }
+  }
+  
+  // Sauna caption
+  if (roomDescriptions.sauna) {
+    const desc = roomDescriptions.sauna.toLowerCase();
+    if (desc.includes('puukiuas')) {
+      captions.sauna = 'Aito puusauna 🧖';
+    } else {
+      captions.sauna = 'Oma sauna rentoutumiseen 🧖‍♂️';
+    }
+  }
+  
+  // Bathroom caption
+  if (roomDescriptions.bathroom) {
+    const desc = roomDescriptions.bathroom.toLowerCase();
+    if (desc.includes('remontoitu') || desc.includes('uusittu')) {
+      captions.bathroom = 'Uudistettu kylpyhuone 🚿';
+    } else {
+      captions.bathroom = 'Toimiva kylpyhuone 🛁';
+    }
+  }
+  
+  // Exterior/yard caption
+  captions.exterior = 'Tervetuloa kotiin! 🏠';
+  
+  // Property highlights
+  if (propertyInfo.year && parseInt(propertyInfo.year) < 1960) {
+    captions.intro = `Historiallinen ${propertyInfo.year}-luvun helmi ✨`;
+  } else if (propertyInfo.year && parseInt(propertyInfo.year) > 2010) {
+    captions.intro = 'Moderni ja energiatehokas 🌱';
+  }
+  
+  // Price highlight
+  if (propertyInfo.price) {
+    captions.price = `${propertyInfo.price}`;
+  }
+  
+  // Size highlight
+  if (propertyInfo.size) {
+    captions.size = `${propertyInfo.size} tilaa elämälle`;
+  }
+  
+  return captions;
 }

@@ -5,11 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Etuovi Video Editor</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -19,10 +15,7 @@
       padding: 20px;
     }
     
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+    .container { max-width: 1200px; margin: 0 auto; }
     
     h1 {
       text-align: center;
@@ -33,11 +26,7 @@
       -webkit-text-fill-color: transparent;
     }
     
-    .subtitle {
-      text-align: center;
-      color: #888;
-      margin-bottom: 30px;
-    }
+    .subtitle { text-align: center; color: #888; margin-bottom: 30px; }
     
     .input-section {
       display: flex;
@@ -56,15 +45,8 @@
       font-size: 16px;
     }
     
-    input[type="text"] {
-      flex: 1;
-      min-width: 300px;
-      max-width: 600px;
-    }
-    
-    input[type="text"]::placeholder {
-      color: #666;
-    }
+    input[type="text"] { flex: 1; min-width: 300px; max-width: 600px; }
+    input[type="text"]::placeholder { color: #666; }
     
     button {
       padding: 15px 30px;
@@ -77,15 +59,8 @@
       transition: transform 0.2s, opacity 0.2s;
     }
     
-    button:hover {
-      transform: translateY(-2px);
-    }
-    
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
+    button:hover { transform: translateY(-2px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     
     .status {
       text-align: center;
@@ -95,9 +70,7 @@
       background: rgba(255,255,255,0.05);
     }
     
-    .status.error {
-      background: rgba(255,0,0,0.2);
-    }
+    .status.error { background: rgba(255,0,0,0.2); }
     
     .progress-bar {
       width: 100%;
@@ -114,17 +87,8 @@
       transition: width 0.3s;
     }
     
-    .main-content {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-    }
-    
-    @media (max-width: 900px) {
-      .main-content {
-        grid-template-columns: 1fr;
-      }
-    }
+    .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+    @media (max-width: 900px) { .main-content { grid-template-columns: 1fr; } }
     
     .panel {
       background: rgba(255,255,255,0.05);
@@ -132,11 +96,7 @@
       padding: 20px;
     }
     
-    .panel h2 {
-      margin-bottom: 15px;
-      font-size: 1.2rem;
-      color: #aaa;
-    }
+    .panel h2 { margin-bottom: 15px; font-size: 1.2rem; color: #aaa; }
     
     .preview-container {
       position: relative;
@@ -149,11 +109,7 @@
       margin: 0 auto;
     }
     
-    #preview-canvas {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
+    #preview-canvas { width: 100%; height: 100%; object-fit: contain; }
     
     .property-info {
       margin-bottom: 20px;
@@ -162,15 +118,8 @@
       border-radius: 10px;
     }
     
-    .property-info h3 {
-      font-size: 1.1rem;
-      margin-bottom: 5px;
-    }
-    
-    .property-info p {
-      color: #888;
-      font-size: 0.9rem;
-    }
+    .property-info h3 { font-size: 1.1rem; margin-bottom: 5px; }
+    .property-info p { color: #888; font-size: 0.9rem; }
     
     .settings {
       display: grid;
@@ -205,31 +154,14 @@
       transition: opacity 0.2s;
     }
     
-    .images-grid img:hover,
-    .images-grid img.selected {
-      opacity: 1;
-    }
+    .images-grid img:hover, .images-grid img.selected { opacity: 1; }
     
-    .controls {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 20px;
-    }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .controls button { flex: 1; min-width: 120px; }
     
-    .controls button {
-      flex: 1;
-      min-width: 120px;
-    }
+    #download-btn { background: linear-gradient(90deg, #11998e, #38ef7d); }
+    .hidden { display: none !important; }
     
-    #download-btn {
-      background: linear-gradient(90deg, #11998e, #38ef7d);
-    }
-    
-    .hidden {
-      display: none !important;
-    }
-
     .beat-indicator {
       position: absolute;
       top: 10px;
@@ -242,9 +174,36 @@
       transition: opacity 0.1s;
     }
     
-    .beat-indicator.pulse {
-      opacity: 1;
+    .beat-indicator.pulse { opacity: 1; }
+    
+    .story-arc {
+      margin-top: 15px;
+      padding: 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
     }
+    
+    .story-arc h3 { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; }
+    
+    .story-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      margin-bottom: 5px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 5px;
+      font-size: 0.85rem;
+    }
+    
+    .story-item img {
+      width: 40px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    
+    .story-item .caption { color: #ccc; flex: 1; }
   </style>
 </head>
 <body>
@@ -288,15 +247,15 @@
         <h2>Settings</h2>
         <div class="settings">
           <label>
-            BPM (Beats Per Minute)
+            BPM
             <input type="number" id="bpm-input" value="120" min="60" max="180">
           </label>
           <label>
-            Video Duration (seconds)
+            Duration (s)
             <input type="number" id="duration-input" value="20" min="10" max="60">
           </label>
           <label>
-            Transition Style
+            Transition
             <select id="transition-style">
               <option value="cut">Hard Cut</option>
               <option value="fade" selected>Crossfade</option>
@@ -305,49 +264,64 @@
             </select>
           </label>
           <label>
-            Beats per Image
+            Beats/Image
             <select id="beats-per-image">
-              <option value="2">2 beats (fast)</option>
-              <option value="4" selected>4 beats (normal)</option>
-              <option value="8">8 beats (slow)</option>
+              <option value="2">2 (fast)</option>
+              <option value="4" selected>4 (normal)</option>
+              <option value="8">8 (slow)</option>
             </select>
           </label>
         </div>
         
-        <h2>Images (<span id="image-count">0</span>)</h2>
+        <div class="story-arc" id="story-arc">
+          <h3>📖 Story Arc (10 best images)</h3>
+          <div id="story-items"></div>
+        </div>
+        
+        <h2>All Images (<span id="image-count">0</span>)</h2>
         <div class="images-grid" id="images-grid"></div>
       </div>
     </div>
   </div>
   
-  <!-- Hidden audio for background music -->
   <audio id="bg-music" loop crossorigin="anonymous">
     <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" type="audio/mpeg">
   </audio>
   
   <script>
-    let images = [];
+    let allImages = [];
+    let storyImages = [];
     let propertyData = null;
     let isPlaying = false;
     let animationId = null;
     let currentFrame = 0;
     let videoBlob = null;
-    let beatTimes = [];
     let audioContext = null;
-    let analyser = null;
     
     const canvas = document.getElementById('preview-canvas');
     const ctx = canvas.getContext('2d');
     const bgMusic = document.getElementById('bg-music');
     const beatIndicator = document.getElementById('beat-indicator');
     
-    // Video settings
     const VIDEO_WIDTH = 1080;
     const VIDEO_HEIGHT = 1920;
     const FPS = 30;
-    const MIN_CLIP_DURATION = 1.0; // Minimum 1 second per clip
+    const MIN_CLIP_DURATION = 1.0;
     
-    // Get settings from UI
+    // Story arc structure - typical real estate video flow
+    const STORY_STRUCTURE = [
+      { type: 'exterior', caption: 'Tervetuloa kotiin! 🏠', fallback: 'intro' },
+      { type: 'highlight', caption: null, fallback: 'price' },
+      { type: 'livingRoom', caption: null, fallback: 'Viihtyisä olohuone 🛋️' },
+      { type: 'kitchen', caption: null, fallback: 'Kodin sydän 🍽️' },
+      { type: 'bedroom', caption: null, fallback: 'Rauhallinen makuuhuone 😴' },
+      { type: 'bathroom', caption: null, fallback: 'Toimiva kylpyhuone 🚿' },
+      { type: 'sauna', caption: null, fallback: 'Oma sauna 🧖' },
+      { type: 'detail', caption: 'Laadukkaita yksityiskohtia ✨', fallback: null },
+      { type: 'yard', caption: 'Oma piha 🌿', fallback: null },
+      { type: 'exterior', caption: null, fallback: 'closing' }
+    ];
+    
     function getSettings() {
       return {
         bpm: parseInt(document.getElementById('bpm-input').value) || 120,
@@ -357,20 +331,6 @@
       };
     }
     
-    // Calculate beat times based on BPM
-    function calculateBeatTimes() {
-      const settings = getSettings();
-      const beatInterval = 60 / settings.bpm; // seconds per beat
-      const totalBeats = Math.floor(settings.duration / beatInterval);
-      
-      beatTimes = [];
-      for (let i = 0; i < totalBeats; i++) {
-        beatTimes.push(i * beatInterval);
-      }
-      return beatTimes;
-    }
-    
-    // Get image schedule based on beats (minimum 1s per clip)
     function getImageSchedule() {
       const settings = getSettings();
       const beatInterval = 60 / settings.bpm;
@@ -380,24 +340,26 @@
       let currentTime = 0;
       let imageIndex = 0;
       
-      while (currentTime < settings.duration && imageIndex < images.length) {
+      while (currentTime < settings.duration && imageIndex < storyImages.length) {
         schedule.push({
           imageIndex: imageIndex,
           startTime: currentTime,
           endTime: Math.min(currentTime + clipDuration, settings.duration),
-          duration: clipDuration
+          duration: clipDuration,
+          caption: storyImages[imageIndex]?.caption || ''
         });
         currentTime += clipDuration;
         imageIndex++;
       }
       
-      // If we ran out of images, loop them
+      // Loop if needed
       while (currentTime < settings.duration) {
         schedule.push({
-          imageIndex: imageIndex % images.length,
+          imageIndex: imageIndex % storyImages.length,
           startTime: currentTime,
           endTime: Math.min(currentTime + clipDuration, settings.duration),
-          duration: clipDuration
+          duration: clipDuration,
+          caption: storyImages[imageIndex % storyImages.length]?.caption || ''
         });
         currentTime += clipDuration;
         imageIndex++;
@@ -406,7 +368,6 @@
       return schedule;
     }
     
-    // Get current beat info for a given time
     function getBeatInfo(time) {
       const settings = getSettings();
       const beatInterval = 60 / settings.bpm;
@@ -414,12 +375,7 @@
       const beatProgress = currentBeat % 1;
       const isOnBeat = beatProgress < 0.1 || beatProgress > 0.9;
       
-      return {
-        beatNumber: Math.floor(currentBeat),
-        beatProgress,
-        isOnBeat,
-        beatInterval
-      };
+      return { beatNumber: Math.floor(currentBeat), beatProgress, isOnBeat, beatInterval };
     }
     
     async function fetchListing() {
@@ -441,28 +397,20 @@
         
         const data = await response.json();
         
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch listing');
-        }
-        
-        if (data.images.length === 0) {
-          throw new Error('No images found in listing');
-        }
+        if (!response.ok) throw new Error(data.error || 'Failed to fetch listing');
+        if (data.images.length === 0) throw new Error('No images found in listing');
         
         propertyData = data;
         
-        // Update UI
         document.getElementById('property-title').textContent = data.address || data.title;
         document.getElementById('property-details').textContent = 
-          [data.price, data.size].filter(Boolean).join(' • ') || 'Property details';
+          [data.price, data.size, data.year ? `Built ${data.year}` : ''].filter(Boolean).join(' • ');
         
-        // Load and display images
         await loadImages(data.images);
+        buildStoryArc(data);
         
         hideStatus();
         document.getElementById('editor').classList.remove('hidden');
-        
-        // Draw first frame
         drawFrame(0);
         
       } catch (error) {
@@ -478,8 +426,8 @@
       const grid = document.getElementById('images-grid');
       grid.innerHTML = '';
       
-      images = [];
-      const maxImages = 15; // Limit for performance
+      allImages = [];
+      const maxImages = 20;
       const urlsToLoad = imageUrls.slice(0, maxImages);
       
       for (let i = 0; i < urlsToLoad.length; i++) {
@@ -496,9 +444,8 @@
             img.src = `/api/proxy?url=${encodeURIComponent(urlsToLoad[i])}`;
           });
           
-          images.push(img);
+          allImages.push({ img, url: urlsToLoad[i], index: i });
           
-          // Add thumbnail to grid
           const thumb = document.createElement('img');
           thumb.src = img.src;
           thumb.className = 'selected';
@@ -509,8 +456,82 @@
         }
       }
       
-      document.getElementById('image-count').textContent = images.length;
+      document.getElementById('image-count').textContent = allImages.length;
       setProgress(100);
+    }
+    
+    function buildStoryArc(data) {
+      // Select best images for story arc (max 10)
+      const selectedImages = [];
+      const captions = data.roomCaptions || {};
+      const tags = data.imageTags || [];
+      
+      // Build story based on available images and captions
+      const storyOrder = [
+        { tag: 'julkisivu', caption: captions.exterior || 'Tervetuloa! 🏠', type: 'intro' },
+        { tag: null, caption: `${data.price} • ${data.size}`, type: 'highlight' },
+        { tag: 'olohuone', caption: captions.livingRoom || 'Viihtyisä olohuone 🛋️', type: 'room' },
+        { tag: 'keittiö', caption: captions.kitchen || 'Kodin sydän 🍽️', type: 'room' },
+        { tag: 'makuuhuone', caption: captions.bedroom || 'Rauhallinen makuuhuone 😴', type: 'room' },
+        { tag: 'kylpyhuone', caption: captions.bathroom || 'Toimiva kylpyhuone 🚿', type: 'room' },
+        { tag: 'sauna', caption: captions.sauna || 'Oma sauna 🧖', type: 'room' },
+        { tag: 'piha', caption: 'Oma piha 🌿', type: 'exterior' },
+        { tag: null, caption: 'Laadukkaita yksityiskohtia ✨', type: 'detail' },
+        { tag: 'julkisivu', caption: data.address?.split(',')[0] || '🏠', type: 'closing' }
+      ];
+      
+      const usedIndices = new Set();
+      
+      // First pass: match by tags if available
+      for (const story of storyOrder) {
+        let found = false;
+        
+        // Try to find matching tag
+        if (story.tag && tags.length > 0) {
+          for (let i = 0; i < tags.length && i < allImages.length; i++) {
+            if (!usedIndices.has(i) && tags[i] && tags[i].toLowerCase().includes(story.tag)) {
+              selectedImages.push({
+                ...allImages[i],
+                caption: story.caption
+              });
+              usedIndices.add(i);
+              found = true;
+              break;
+            }
+          }
+        }
+        
+        // If no tag match, use next available image
+        if (!found) {
+          for (let i = 0; i < allImages.length; i++) {
+            if (!usedIndices.has(i)) {
+              selectedImages.push({
+                ...allImages[i],
+                caption: story.caption
+              });
+              usedIndices.add(i);
+              break;
+            }
+          }
+        }
+      }
+      
+      // Limit to 10 images
+      storyImages = selectedImages.slice(0, 10);
+      
+      // Update story arc UI
+      const storyContainer = document.getElementById('story-items');
+      storyContainer.innerHTML = '';
+      
+      storyImages.forEach((item, i) => {
+        const div = document.createElement('div');
+        div.className = 'story-item';
+        div.innerHTML = `
+          <img src="${item.img.src}" alt="Scene ${i + 1}">
+          <span class="caption">${i + 1}. ${item.caption}</span>
+        `;
+        storyContainer.appendChild(div);
+      });
     }
     
     function drawFrame(frameNum) {
@@ -521,7 +542,6 @@
       const schedule = getImageSchedule();
       const beatInfo = getBeatInfo(currentTime);
       
-      // Find current clip
       let currentClip = schedule[0];
       let nextClip = schedule[1];
       
@@ -534,42 +554,38 @@
       }
       
       const clipProgress = (currentTime - currentClip.startTime) / currentClip.duration;
-      const img = images[currentClip.imageIndex];
-      const nextImg = images[nextClip.imageIndex];
+      const imgData = storyImages[currentClip.imageIndex];
+      const nextImgData = storyImages[nextClip.imageIndex];
       
-      if (!img) return;
+      if (!imgData?.img) return;
       
-      // Clear canvas
+      const img = imgData.img;
+      const nextImg = nextImgData?.img;
+      
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
       
-      // Transition effects
-      const transitionDuration = 0.2; // seconds
+      const transitionDuration = 0.2;
       const transitionStart = 1 - (transitionDuration / currentClip.duration);
       const inTransition = clipProgress > transitionStart;
       const transitionProgress = inTransition ? (clipProgress - transitionStart) / (1 - transitionStart) : 0;
       
-      // Ken Burns effect - subtle zoom and pan
       const baseZoom = 1.15;
       const zoomRange = 0.1;
       const zoom = baseZoom + Math.sin(clipProgress * Math.PI) * zoomRange;
-      
-      // Beat-synced pulse effect
       const beatPulse = beatInfo.isOnBeat ? 1.02 : 1;
       const finalZoom = zoom * beatPulse;
       
-      // Pan direction alternates per image
       const panDirection = currentClip.imageIndex % 2 === 0 ? 1 : -1;
       const panAmount = (clipProgress - 0.5) * 80 * panDirection;
       
-      // Draw based on transition style
       if (inTransition && nextImg && settings.transitionStyle !== 'cut') {
         drawTransition(img, nextImg, transitionProgress, finalZoom, panAmount, settings.transitionStyle);
       } else {
         drawImage(img, finalZoom, panAmount, 1);
       }
       
-      // Add subtle vignette
+      // Vignette
       const gradient = ctx.createRadialGradient(
         VIDEO_WIDTH / 2, VIDEO_HEIGHT / 2, VIDEO_HEIGHT * 0.3,
         VIDEO_WIDTH / 2, VIDEO_HEIGHT / 2, VIDEO_HEIGHT * 0.8
@@ -579,12 +595,12 @@
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
       
-      // Add property info overlay at bottom
-      if (propertyData) {
-        drawOverlay();
-      }
+      // Draw caption overlay
+      drawCaptionOverlay(currentClip.caption, clipProgress);
       
-      // Update beat indicator
+      // Draw property info at bottom
+      drawPropertyOverlay();
+      
       if (beatInfo.isOnBeat) {
         beatIndicator.classList.add('pulse');
         setTimeout(() => beatIndicator.classList.remove('pulse'), 100);
@@ -594,7 +610,6 @@
     function drawImage(img, zoom, panX, alpha) {
       ctx.globalAlpha = alpha;
       
-      // Calculate dimensions to cover the canvas (crop to 9:16)
       const imgRatio = img.width / img.height;
       const canvasRatio = VIDEO_WIDTH / VIDEO_HEIGHT;
       
@@ -617,21 +632,16 @@
     function drawTransition(img1, img2, progress, zoom, panX, style) {
       switch (style) {
         case 'fade':
-          // Crossfade
           drawImage(img1, zoom, panX, 1 - progress);
           drawImage(img2, 1.15, 0, progress);
           break;
-          
         case 'zoom':
-          // Zoom punch - first image zooms out, second zooms in
           const zoomOut = zoom * (1 + progress * 0.3);
           const zoomIn = 1.3 - progress * 0.15;
           drawImage(img1, zoomOut, panX, 1 - progress);
           drawImage(img2, zoomIn, 0, progress);
           break;
-          
         case 'slide':
-          // Slide - images slide horizontally
           const slideOffset = progress * VIDEO_WIDTH;
           ctx.save();
           ctx.translate(-slideOffset, 0);
@@ -642,13 +652,49 @@
           drawImage(img2, 1.15, 0, 1);
           ctx.restore();
           break;
-          
         default:
           drawImage(img1, zoom, panX, 1);
       }
     }
     
-    function drawOverlay() {
+    function drawCaptionOverlay(caption, progress) {
+      if (!caption) return;
+      
+      // Animate caption in/out
+      let opacity = 1;
+      if (progress < 0.15) {
+        opacity = progress / 0.15;
+      } else if (progress > 0.85) {
+        opacity = (1 - progress) / 0.15;
+      }
+      
+      // Draw caption background
+      ctx.fillStyle = `rgba(0,0,0,${0.6 * opacity})`;
+      const captionY = VIDEO_HEIGHT * 0.4;
+      const padding = 30;
+      
+      ctx.font = 'bold 56px -apple-system, sans-serif';
+      const textWidth = ctx.measureText(caption).width;
+      
+      // Rounded rectangle background
+      const rectX = (VIDEO_WIDTH - textWidth) / 2 - padding;
+      const rectY = captionY - 45;
+      const rectWidth = textWidth + padding * 2;
+      const rectHeight = 80;
+      
+      ctx.beginPath();
+      ctx.roundRect(rectX, rectY, rectWidth, rectHeight, 15);
+      ctx.fill();
+      
+      // Draw text
+      ctx.fillStyle = `rgba(255,255,255,${opacity})`;
+      ctx.textAlign = 'center';
+      ctx.fillText(caption, VIDEO_WIDTH / 2, captionY);
+    }
+    
+    function drawPropertyOverlay() {
+      if (!propertyData) return;
+      
       const overlayHeight = 200;
       const overlayGradient = ctx.createLinearGradient(0, VIDEO_HEIGHT - overlayHeight, 0, VIDEO_HEIGHT);
       overlayGradient.addColorStop(0, 'rgba(0,0,0,0)');
@@ -657,14 +703,12 @@
       ctx.fillStyle = overlayGradient;
       ctx.fillRect(0, VIDEO_HEIGHT - overlayHeight, VIDEO_WIDTH, overlayHeight);
       
-      // Address
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 48px -apple-system, sans-serif';
       ctx.textAlign = 'center';
       const address = propertyData.address || 'Beautiful Property';
       ctx.fillText(address.substring(0, 30), VIDEO_WIDTH / 2, VIDEO_HEIGHT - 100);
       
-      // Price and size
       ctx.font = '36px -apple-system, sans-serif';
       ctx.fillStyle = '#ccc';
       const details = [propertyData.price, propertyData.size].filter(Boolean).join(' • ');
@@ -672,15 +716,12 @@
     }
     
     function togglePreview() {
-      if (isPlaying) {
-        stopPreview();
-      } else {
-        startPreview();
-      }
+      if (isPlaying) stopPreview();
+      else startPreview();
     }
     
     function startPreview() {
-      if (images.length === 0) return;
+      if (storyImages.length === 0) return;
       
       const settings = getSettings();
       const totalFrames = settings.duration * FPS;
@@ -722,7 +763,7 @@
     }
     
     async function generateVideo() {
-      if (images.length === 0) {
+      if (storyImages.length === 0) {
         showStatus('No images loaded', true);
         return;
       }
@@ -737,10 +778,7 @@
       try {
         const stream = canvas.captureStream(FPS);
         
-        // Set up audio
-        if (!audioContext) {
-          audioContext = new AudioContext();
-        }
+        if (!audioContext) audioContext = new AudioContext();
         
         const audioSource = audioContext.createMediaElementSource(bgMusic);
         const audioDestination = audioContext.createMediaStreamDestination();
@@ -814,23 +852,14 @@
       document.getElementById('status-text').textContent = text;
     }
     
-    function hideStatus() {
-      document.getElementById('status').classList.add('hidden');
-    }
+    function hideStatus() { document.getElementById('status').classList.add('hidden'); }
+    function setProgress(percent) { document.getElementById('progress-fill').style.width = percent + '%'; }
     
-    function setProgress(percent) {
-      document.getElementById('progress-fill').style.width = percent + '%';
-    }
-    
-    // Update preview when settings change
-    document.getElementById('bpm-input').addEventListener('change', () => {
-      if (images.length > 0) drawFrame(currentFrame);
-    });
-    document.getElementById('duration-input').addEventListener('change', () => {
-      if (images.length > 0) drawFrame(currentFrame);
-    });
-    document.getElementById('beats-per-image').addEventListener('change', () => {
-      if (images.length > 0) drawFrame(currentFrame);
+    // Update on settings change
+    ['bpm-input', 'duration-input', 'beats-per-image'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => {
+        if (storyImages.length > 0) drawFrame(currentFrame);
+      });
     });
   </script>
 </body>
