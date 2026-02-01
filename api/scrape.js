@@ -34,36 +34,48 @@ export default async function handler(req, res) {
 
     const html = await response.text();
 
-    // Extract property images using the CDN pattern
-    const imagePattern = /d3ls91xgksobn\.cloudfront\.net\\u002F\{imageParameters\}\\u002Fetuovimedia\\u002Fimages\\u002Fproperty\\u002Fimport\\u002F([^"\\]+)/g;
+    // Extract property images - look for the full path pattern with \u002F encoding
+    // Pattern: d3ls91xgksobn.cloudfront.net\u002F{imageParameters}\u002Fetuovimedia\u002Fimages\u002Fproperty\u002Fimport\u002F...
+    const imagePattern = /d3ls91xgksobn\.cloudfront\.net\\u002F\{imageParameters\}\\u002Fetuovimedia\\u002Fimages\\u002Fproperty\\u002Fimport\\u002F([^"]+?)\\u002FORIGINAL\.jpeg/g;
     const matches = [...html.matchAll(imagePattern)];
 
     // Extract unique image paths
     const imagePaths = new Set();
     for (const match of matches) {
+      // Decode the \u002F to /
       const path = match[1].replace(/\\u002F/g, '/');
       imagePaths.add(path);
     }
 
     // Build full image URLs with high resolution parameters
     const images = Array.from(imagePaths).map(path =>
-      `https://d3ls91xgksobn.cloudfront.net/1920x1920,fit,q90/etuovimedia/images/property/import/${path}`
+      `https://d3ls91xgksobn.cloudfront.net/1920x1920,fit,q90/etuovimedia/images/property/import/${path}/ORIGINAL.jpeg`
     );
+
+    // Also try to extract directly linked images (non-encoded format)
+    const directPattern = /d3ls91xgksobn\.cloudfront\.net\/[^"]+?\/etuovimedia\/images\/property\/import\/([^"]+?\/ORIGINAL\.jpeg)/g;
+    const directMatches = [...html.matchAll(directPattern)];
+    for (const match of directMatches) {
+      const fullUrl = `https://d3ls91xgksobn.cloudfront.net/1920x1920,fit,q90/etuovimedia/images/property/import/${match[1]}`;
+      if (!images.includes(fullUrl)) {
+        images.push(fullUrl);
+      }
+    }
 
     // Extract property title
     const titleMatch = html.match(/<title>([^<]+)<\/title>/);
     const title = titleMatch ? titleMatch[1].split(' | ')[0] : 'Property';
 
-    // Extract price
+    // Extract price - look for the main price display
     const priceMatch = html.match(/(\d{1,3}(?:\s?\d{3})*)\s*€/);
     const price = priceMatch ? priceMatch[1].replace(/\s/g, ' ') + ' €' : '';
 
     // Extract address from the page
-    const addressMatch = html.match(/<h1>([^<]+)<\/h1>/);
-    const address = addressMatch ? addressMatch[1] : '';
+    const addressMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/);
+    const address = addressMatch ? addressMatch[1].trim() : '';
 
     // Extract size
-    const sizeMatch = html.match(/(\d+)\s*(?:\/\s*\d+)?\s*m²/);
+    const sizeMatch = html.match(/(\d+(?:,\d+)?)\s*m²/);
     const size = sizeMatch ? sizeMatch[0] : '';
 
     return res.status(200).json({
