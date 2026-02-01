@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Etuovi Video Editor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #fff;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.5rem;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 30px;
+    }
+    
+    .input-section {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    input[type="text"] {
+      flex: 1;
+      min-width: 300px;
+      max-width: 600px;
+      padding: 15px 20px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 16px;
+    }
+    
+    input[type="text"]::placeholder {
+      color: #666;
+    }
+    
+    button {
+      padding: 15px 30px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .status {
+      text-align: center;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+    }
+    
+    .status.error {
+      background: rgba(255,0,0,0.2);
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      transition: width 0.3s;
+    }
+    
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    
+    @media (max-width: 900px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .panel {
+      background: rgba(255,255,255,0.05);
+      border-radius: 15px;
+      padding: 20px;
+    }
+    
+    .panel h2 {
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+      color: #aaa;
+    }
+    
+    .preview-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 9/16;
+      max-height: 70vh;
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+    
+    #preview-canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    
+    .property-info {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+    }
+    
+    .property-info h3 {
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+    }
+    
+    .property-info p {
+      color: #888;
+      font-size: 0.9rem;
+    }
+    
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .images-grid img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 5px;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    
+    .images-grid img:hover,
+    .images-grid img.selected {
+      opacity: 1;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    
+    .controls button {
+      flex: 1;
+      min-width: 120px;
+    }
+    
+    #download-btn {
+      background: linear-gradient(90deg, #11998e, #38ef7d);
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    video {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏠 Etuovi Video Editor</h1>
+    <p class="subtitle">Create social media videos from Finnish property listings</p>
+    
+    <div class="input-section">
+      <input type="text" id="url-input" placeholder="Paste Etuovi URL (e.g., https://www.etuovi.com/kohde/12345678)">
+      <button id="fetch-btn" onclick="fetchListing()">Fetch Listing</button>
+    </div>
+    
+    <div id="status" class="status hidden">
+      <p id="status-text">Loading...</p>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+    </div>
+    
+    <div id="editor" class="main-content hidden">
+      <div class="panel">
+        <h2>Preview</h2>
+        <div class="preview-container">
+          <canvas id="preview-canvas" width="1080" height="1920"></canvas>
+        </div>
+        <div class="controls">
+          <button id="play-btn" onclick="togglePreview()">▶ Preview</button>
+          <button id="generate-btn" onclick="generateVideo()">🎬 Generate Video</button>
+          <button id="download-btn" class="hidden" onclick="downloadVideo()">⬇ Download</button>
+        </div>
+      </div>
+      
+      <div class="panel">
+        <h2>Property Info</h2>
+        <div class="property-info">
+          <h3 id="property-title">-</h3>
+          <p id="property-details">-</p>
+        </div>
+        
+        <h2>Images (<span id="image-count">0</span>)</h2>
+        <div class="images-grid" id="images-grid"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Hidden audio for background music -->
+  <audio id="bg-music" loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" type="audio/mpeg">
+  </audio>
+  
+  <script>
+    let images = [];
+    let propertyData = null;
+    let isPlaying = false;
+    let animationId = null;
+    let currentFrame = 0;
+    let videoBlob = null;
+    
+    const canvas = document.getElementById('preview-canvas');
+    const ctx = canvas.getContext('2d');
+    const bgMusic = document.getElementById('bg-music');
+    
+    // Video settings
+    const VIDEO_WIDTH = 1080;
+    const VIDEO_HEIGHT = 1920;
+    const VIDEO_DURATION = 20; // seconds
+    const FPS = 30;
+    const TOTAL_FRAMES = VIDEO_DURATION * FPS;
+    
+    async function fetchListing() {
+      const url = document.getElementById('url-input').value.trim();
+      if (!url) {
+        showStatus('Please enter an Etuovi URL', true);
+        return;
+      }
+      
+      showStatus('Fetching listing...', false);
+      document.getElementById('fetch-btn').disabled = true;
+      
+      try {
+        const response = await fetch('/api/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch listing');
+        }
+        
+        if (data.images.length === 0) {
+          throw new Error('No images found in listing');
+        }
+        
+        propertyData = data;
+        images = data.images.slice(0, 10); // Max 10 images for 20s video
+        
+        // Update UI
+        document.getElementById('property-title').textContent = data.address || data.title;
+        document.getElementById('property-details').textContent = 
+          [data.price, data.size].filter(Boolean).join(' • ') || 'Property details';
+        document.getElementById('image-count').textContent = images.length;
+        
+        // Load and display images
+        await loadImages();
+        
+        hideStatus();
+        document.getElementById('editor').classList.remove('hidden');
+        
+        // Draw first frame
+        drawFrame(0);
+        
+      } catch (error) {
+        showStatus(error.message, true);
+      } finally {
+        document.getElementById('fetch-btn').disabled = false;
+      }
+    }
+    
+    async function loadImages() {
+      showStatus('Loading images...', false);
+      
+      const grid = document.getElementById('images-grid');
+      grid.innerHTML = '';
+      
+      const loadedImages = [];
+      
+      for (let i = 0; i < images.length; i++) {
+        const progress = ((i + 1) / images.length) * 100;
+        setProgress(progress);
+        
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            // Use proxy to avoid CORS issues
+            img.src = `/api/proxy?url=${encodeURIComponent(images[i])}`;
+          });
+          
+          loadedImages.push(img);
+          
+          // Add thumbnail to grid
+          const thumb = document.createElement('img');
+          thumb.src = img.src;
+          thumb.className = 'selected';
+          grid.appendChild(thumb);
+          
+        } catch (e) {
+          console.error('Failed to load image:', images[i]);
+        }
+      }
+      
+      images = loadedImages;
+      setProgress(100);
+    }
+    
+    function drawFrame(frameNum) {
+      const totalFramesPerImage = TOTAL_FRAMES / images.length;
+      const imageIndex = Math.min(Math.floor(frameNum / totalFramesPerImage), images.length - 1);
+      const frameInImage = frameNum % totalFramesPerImage;
+      const progress = frameInImage / totalFramesPerImage;
+      
+      const img = images[imageIndex];
+      if (!img) return;
+      
+      // Clear canvas
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
+      
+      // Calculate zoom and pan
+      const baseZoom = 1.2;
+      const zoomRange = 0.15;
+      const zoom = baseZoom + Math.sin(progress * Math.PI) * zoomRange;
+      
+      // Ken Burns effect - pan direction alternates per image
+      const panDirection = imageIndex % 2 === 0 ? 1 : -1;
+      const panAmount = (progress - 0.5) * 100 * panDirection;
+      
+      // Calculate dimensions to cover the canvas (crop to 9:16)
+      const imgRatio = img.width / img.height;
+      const canvasRatio = VIDEO_WIDTH / VIDEO_HEIGHT;
+      
+      let drawWidth, drawHeight;
+      if (imgRatio > canvasRatio) {
+        // Image is wider - fit by height
+        drawHeight = VIDEO_HEIGHT * zoom;
+        drawWidth = drawHeight * imgRatio;
+      } else {
+        // Image is taller - fit by width
+        drawWidth = VIDEO_WIDTH * zoom;
+        drawHeight = drawWidth / imgRatio;
+      }
+      
+      const x = (VIDEO_WIDTH - drawWidth) / 2 + panAmount;
+      const y = (VIDEO_HEIGHT - drawHeight) / 2;
+      
+      ctx.drawImage(img, x, y, drawWidth, drawHeight);
+      
+      // Add subtle vignette
+      const gradient = ctx.createRadialGradient(
+        VIDEO_WIDTH / 2, VIDEO_HEIGHT / 2, VIDEO_HEIGHT * 0.3,
+        VIDEO_WIDTH / 2, VIDEO_HEIGHT / 2, VIDEO_HEIGHT * 0.8
+      );
+      gradient.addColorStop(0, 'rgba(0,0,0,0)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0.4)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
+      
+      // Add property info overlay at bottom
+      if (propertyData) {
+        // Semi-transparent background
+        const overlayHeight = 200;
+        const overlayGradient = ctx.createLinearGradient(0, VIDEO_HEIGHT - overlayHeight, 0, VIDEO_HEIGHT);
+        overlayGradient.addColorStop(0, 'rgba(0,0,0,0)');
+        overlayGradient.addColorStop(0.5, 'rgba(0,0,0,0.7)');
+        overlayGradient.addColorStop(1, 'rgba(0,0,0,0.9)');
+        ctx.fillStyle = overlayGradient;
+        ctx.fillRect(0, VIDEO_HEIGHT - overlayHeight, VIDEO_WIDTH, overlayHeight);
+        
+        // Address
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 48px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        const address = propertyData.address || 'Beautiful Property';
+        ctx.fillText(address.substring(0, 30), VIDEO_WIDTH / 2, VIDEO_HEIGHT - 100);
+        
+        // Price and size
+        ctx.font = '36px -apple-system, sans-serif';
+        ctx.fillStyle = '#ccc';
+        const details = [propertyData.price, propertyData.size].filter(Boolean).join(' • ');
+        ctx.fillText(details, VIDEO_WIDTH / 2, VIDEO_HEIGHT - 50);
+      }
+    }
+    
+    function togglePreview() {
+      if (isPlaying) {
+        stopPreview();
+      } else {
+        startPreview();
+      }
+    }
+    
+    function startPreview() {
+      if (images.length === 0) return;
+      
+      isPlaying = true;
+      currentFrame = 0;
+      document.getElementById('play-btn').textContent = '⏸ Pause';
+      bgMusic.currentTime = 0;
+      bgMusic.volume = 0.3;
+      bgMusic.play().catch(() => {});
+      
+      function animate() {
+        if (!isPlaying) return;
+        
+        drawFrame(currentFrame);
+        currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
+        
+        animationId = requestAnimationFrame(animate);
+      }
+      
+      // Throttle to target FPS
+      let lastTime = 0;
+      const frameInterval = 1000 / FPS;
+      
+      function animateThrottled(timestamp) {
+        if (!isPlaying) return;
+        
+        const delta = timestamp - lastTime;
+        if (delta >= frameInterval) {
+          lastTime = timestamp - (delta % frameInterval);
+          drawFrame(currentFrame);
+          currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
+        }
+        
+        animationId = requestAnimationFrame(animateThrottled);
+      }
+      
+      animationId = requestAnimationFrame(animateThrottled);
+    }
+    
+    function stopPreview() {
+      isPlaying = false;
+      document.getElementById('play-btn').textContent = '▶ Preview';
+      bgMusic.pause();
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+    }
+    
+    async function generateVideo() {
+      if (images.length === 0) {
+        showStatus('No images loaded', true);
+        return;
+      }
+      
+      stopPreview();
+      showStatus('Generating video... This may take a minute.', false);
+      document.getElementById('generate-btn').disabled = true;
+      
+      try {
+        // Use MediaRecorder with canvas
+        const stream = canvas.captureStream(FPS);
+        
+        // Add audio track
+        const audioContext = new AudioContext();
+        const audioSource = audioContext.createMediaElementSource(bgMusic);
+        const audioDestination = audioContext.createMediaStreamDestination();
+        audioSource.connect(audioDestination);
+        audioSource.connect(audioContext.destination);
+        
+        // Combine video and audio streams
+        const combinedStream = new MediaStream([
+          ...stream.getVideoTracks(),
+          ...audioDestination.stream.getAudioTracks()
+        ]);
+        
+        const mediaRecorder = new MediaRecorder(combinedStream, {
+          mimeType: 'video/webm;codecs=vp9',
+          videoBitsPerSecond: 8000000
+        });
+        
+        const chunks = [];
+        mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+        
+        mediaRecorder.onstop = () => {
+          videoBlob = new Blob(chunks, { type: 'video/webm' });
+          hideStatus();
+          document.getElementById('download-btn').classList.remove('hidden');
+          document.getElementById('generate-btn').disabled = false;
+          showStatus('Video ready! Click Download to save.', false);
+          bgMusic.pause();
+          audioSource.disconnect();
+        };
+        
+        // Start recording
+        mediaRecorder.start();
+        bgMusic.currentTime = 0;
+        bgMusic.volume = 0.5;
+        bgMusic.play();
+        
+        // Render all frames
+        let frame = 0;
+        const renderInterval = setInterval(() => {
+          if (frame >= TOTAL_FRAMES) {
+            clearInterval(renderInterval);
+            mediaRecorder.stop();
+            return;
+          }
+          
+          drawFrame(frame);
+          frame++;
+          setProgress((frame / TOTAL_FRAMES) * 100);
+        }, 1000 / FPS);
+        
+      } catch (error) {
+        console.error('Video generation error:', error);
+        showStatus('Video generation failed. Try using Chrome browser.', true);
+        document.getElementById('generate-btn').disabled = false;
+      }
+    }
+    
+    function downloadVideo() {
+      if (!videoBlob) return;
+      
+      const url = URL.createObjectURL(videoBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `etuovi-video-${Date.now()}.webm`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    function showStatus(text, isError) {
+      const status = document.getElementById('status');
+      status.classList.remove('hidden');
+      status.classList.toggle('error', isError);
+      document.getElementById('status-text').textContent = text;
+    }
+    
+    function hideStatus() {
+      document.getElementById('status').classList.add('hidden');
+    }
+    
+    function setProgress(percent) {
+      document.getElementById('progress-fill').style.width = percent + '%';
+    }
+  </script>
+</body>
+</html>
