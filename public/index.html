@@ -47,16 +47,19 @@
       justify-content: center;
     }
     
-    input[type="text"] {
-      flex: 1;
-      min-width: 300px;
-      max-width: 600px;
+    input[type="text"], input[type="number"], select {
       padding: 15px 20px;
       border: none;
       border-radius: 10px;
       background: rgba(255,255,255,0.1);
       color: #fff;
       font-size: 16px;
+    }
+    
+    input[type="text"] {
+      flex: 1;
+      min-width: 300px;
+      max-width: 600px;
     }
     
     input[type="text"]::placeholder {
@@ -169,6 +172,21 @@
       font-size: 0.9rem;
     }
     
+    .settings {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .settings label {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 0.85rem;
+      color: #aaa;
+    }
+    
     .images-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -211,9 +229,21 @@
     .hidden {
       display: none !important;
     }
+
+    .beat-indicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #667eea;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
     
-    video {
-      display: none;
+    .beat-indicator.pulse {
+      opacity: 1;
     }
   </style>
 </head>
@@ -239,6 +269,7 @@
         <h2>Preview</h2>
         <div class="preview-container">
           <canvas id="preview-canvas" width="1080" height="1920"></canvas>
+          <div class="beat-indicator" id="beat-indicator"></div>
         </div>
         <div class="controls">
           <button id="play-btn" onclick="togglePreview()">▶ Preview</button>
@@ -254,6 +285,35 @@
           <p id="property-details">-</p>
         </div>
         
+        <h2>Settings</h2>
+        <div class="settings">
+          <label>
+            BPM (Beats Per Minute)
+            <input type="number" id="bpm-input" value="120" min="60" max="180">
+          </label>
+          <label>
+            Video Duration (seconds)
+            <input type="number" id="duration-input" value="20" min="10" max="60">
+          </label>
+          <label>
+            Transition Style
+            <select id="transition-style">
+              <option value="cut">Hard Cut</option>
+              <option value="fade" selected>Crossfade</option>
+              <option value="zoom">Zoom Punch</option>
+              <option value="slide">Slide</option>
+            </select>
+          </label>
+          <label>
+            Beats per Image
+            <select id="beats-per-image">
+              <option value="2">2 beats (fast)</option>
+              <option value="4" selected>4 beats (normal)</option>
+              <option value="8">8 beats (slow)</option>
+            </select>
+          </label>
+        </div>
+        
         <h2>Images (<span id="image-count">0</span>)</h2>
         <div class="images-grid" id="images-grid"></div>
       </div>
@@ -261,7 +321,7 @@
   </div>
   
   <!-- Hidden audio for background music -->
-  <audio id="bg-music" loop>
+  <audio id="bg-music" loop crossorigin="anonymous">
     <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" type="audio/mpeg">
   </audio>
   
@@ -272,17 +332,95 @@
     let animationId = null;
     let currentFrame = 0;
     let videoBlob = null;
+    let beatTimes = [];
+    let audioContext = null;
+    let analyser = null;
     
     const canvas = document.getElementById('preview-canvas');
     const ctx = canvas.getContext('2d');
     const bgMusic = document.getElementById('bg-music');
+    const beatIndicator = document.getElementById('beat-indicator');
     
     // Video settings
     const VIDEO_WIDTH = 1080;
     const VIDEO_HEIGHT = 1920;
-    const VIDEO_DURATION = 20; // seconds
     const FPS = 30;
-    const TOTAL_FRAMES = VIDEO_DURATION * FPS;
+    const MIN_CLIP_DURATION = 1.0; // Minimum 1 second per clip
+    
+    // Get settings from UI
+    function getSettings() {
+      return {
+        bpm: parseInt(document.getElementById('bpm-input').value) || 120,
+        duration: parseInt(document.getElementById('duration-input').value) || 20,
+        transitionStyle: document.getElementById('transition-style').value,
+        beatsPerImage: parseInt(document.getElementById('beats-per-image').value) || 4
+      };
+    }
+    
+    // Calculate beat times based on BPM
+    function calculateBeatTimes() {
+      const settings = getSettings();
+      const beatInterval = 60 / settings.bpm; // seconds per beat
+      const totalBeats = Math.floor(settings.duration / beatInterval);
+      
+      beatTimes = [];
+      for (let i = 0; i < totalBeats; i++) {
+        beatTimes.push(i * beatInterval);
+      }
+      return beatTimes;
+    }
+    
+    // Get image schedule based on beats (minimum 1s per clip)
+    function getImageSchedule() {
+      const settings = getSettings();
+      const beatInterval = 60 / settings.bpm;
+      const clipDuration = Math.max(MIN_CLIP_DURATION, beatInterval * settings.beatsPerImage);
+      
+      const schedule = [];
+      let currentTime = 0;
+      let imageIndex = 0;
+      
+      while (currentTime < settings.duration && imageIndex < images.length) {
+        schedule.push({
+          imageIndex: imageIndex,
+          startTime: currentTime,
+          endTime: Math.min(currentTime + clipDuration, settings.duration),
+          duration: clipDuration
+        });
+        currentTime += clipDuration;
+        imageIndex++;
+      }
+      
+      // If we ran out of images, loop them
+      while (currentTime < settings.duration) {
+        schedule.push({
+          imageIndex: imageIndex % images.length,
+          startTime: currentTime,
+          endTime: Math.min(currentTime + clipDuration, settings.duration),
+          duration: clipDuration
+        });
+        currentTime += clipDuration;
+        imageIndex++;
+      }
+      
+      return schedule;
+    }
+    
+    // Get current beat info for a given time
+    function getBeatInfo(time) {
+      const settings = getSettings();
+      const beatInterval = 60 / settings.bpm;
+      const currentBeat = time / beatInterval;
+      const beatProgress = currentBeat % 1;
+      const isOnBeat = beatProgress < 0.1 || beatProgress > 0.9;
+      
+      return {
+        beatNumber: Math.floor(currentBeat),
+        beatProgress,
+        isOnBeat,
+        beatInterval
+      };
+    }
     
     async function fetchListing() {
       const url = document.getElementById('url-input').value.trim();
@@ -312,16 +450,14 @@
         }
         
         propertyData = data;
-        images = data.images.slice(0, 10); // Max 10 images for 20s video
         
         // Update UI
         document.getElementById('property-title').textContent = data.address || data.title;
         document.getElementById('property-details').textContent = 
           [data.price, data.size].filter(Boolean).join(' • ') || 'Property details';
-        document.getElementById('image-count').textContent = images.length;
         
         // Load and display images
-        await loadImages();
+        await loadImages(data.images);
         
         hideStatus();
         document.getElementById('editor').classList.remove('hidden');
@@ -336,16 +472,18 @@
       }
     }
     
-    async function loadImages() {
+    async function loadImages(imageUrls) {
       showStatus('Loading images...', false);
       
       const grid = document.getElementById('images-grid');
       grid.innerHTML = '';
       
-      const loadedImages = [];
+      images = [];
+      const maxImages = 15; // Limit for performance
+      const urlsToLoad = imageUrls.slice(0, maxImages);
       
-      for (let i = 0; i < images.length; i++) {
-        const progress = ((i + 1) / images.length) * 100;
+      for (let i = 0; i < urlsToLoad.length; i++) {
+        const progress = ((i + 1) / urlsToLoad.length) * 100;
         setProgress(progress);
         
         try {
@@ -355,11 +493,10 @@
           await new Promise((resolve, reject) => {
             img.onload = resolve;
             img.onerror = reject;
-            // Use proxy to avoid CORS issues
-            img.src = `/api/proxy?url=${encodeURIComponent(images[i])}`;
+            img.src = `/api/proxy?url=${encodeURIComponent(urlsToLoad[i])}`;
           });
           
-          loadedImages.push(img);
+          images.push(img);
           
           // Add thumbnail to grid
           const thumb = document.createElement('img');
@@ -368,55 +505,69 @@
           grid.appendChild(thumb);
           
         } catch (e) {
-          console.error('Failed to load image:', images[i]);
+          console.error('Failed to load image:', urlsToLoad[i]);
         }
       }
       
-      images = loadedImages;
+      document.getElementById('image-count').textContent = images.length;
       setProgress(100);
     }
     
     function drawFrame(frameNum) {
-      const totalFramesPerImage = TOTAL_FRAMES / images.length;
-      const imageIndex = Math.min(Math.floor(frameNum / totalFramesPerImage), images.length - 1);
-      const frameInImage = frameNum % totalFramesPerImage;
-      const progress = frameInImage / totalFramesPerImage;
+      const settings = getSettings();
+      const totalFrames = settings.duration * FPS;
+      const currentTime = frameNum / FPS;
       
-      const img = images[imageIndex];
+      const schedule = getImageSchedule();
+      const beatInfo = getBeatInfo(currentTime);
+      
+      // Find current clip
+      let currentClip = schedule[0];
+      let nextClip = schedule[1];
+      
+      for (let i = 0; i < schedule.length; i++) {
+        if (currentTime >= schedule[i].startTime && currentTime < schedule[i].endTime) {
+          currentClip = schedule[i];
+          nextClip = schedule[i + 1] || schedule[0];
+          break;
+        }
+      }
+      
+      const clipProgress = (currentTime - currentClip.startTime) / currentClip.duration;
+      const img = images[currentClip.imageIndex];
+      const nextImg = images[nextClip.imageIndex];
+      
       if (!img) return;
       
       // Clear canvas
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
       
-      // Calculate zoom and pan
-      const baseZoom = 1.2;
-      const zoomRange = 0.15;
-      const zoom = baseZoom + Math.sin(progress * Math.PI) * zoomRange;
+      // Transition effects
+      const transitionDuration = 0.2; // seconds
+      const transitionStart = 1 - (transitionDuration / currentClip.duration);
+      const inTransition = clipProgress > transitionStart;
+      const transitionProgress = inTransition ? (clipProgress - transitionStart) / (1 - transitionStart) : 0;
       
-      // Ken Burns effect - pan direction alternates per image
-      const panDirection = imageIndex % 2 === 0 ? 1 : -1;
-      const panAmount = (progress - 0.5) * 100 * panDirection;
+      // Ken Burns effect - subtle zoom and pan
+      const baseZoom = 1.15;
+      const zoomRange = 0.1;
+      const zoom = baseZoom + Math.sin(clipProgress * Math.PI) * zoomRange;
       
-      // Calculate dimensions to cover the canvas (crop to 9:16)
-      const imgRatio = img.width / img.height;
-      const canvasRatio = VIDEO_WIDTH / VIDEO_HEIGHT;
+      // Beat-synced pulse effect
+      const beatPulse = beatInfo.isOnBeat ? 1.02 : 1;
+      const finalZoom = zoom * beatPulse;
       
-      let drawWidth, drawHeight;
-      if (imgRatio > canvasRatio) {
-        // Image is wider - fit by height
-        drawHeight = VIDEO_HEIGHT * zoom;
-        drawWidth = drawHeight * imgRatio;
+      // Pan direction alternates per image
+      const panDirection = currentClip.imageIndex % 2 === 0 ? 1 : -1;
+      const panAmount = (clipProgress - 0.5) * 80 * panDirection;
+      
+      // Draw based on transition style
+      if (inTransition && nextImg && settings.transitionStyle !== 'cut') {
+        drawTransition(img, nextImg, transitionProgress, finalZoom, panAmount, settings.transitionStyle);
       } else {
-        // Image is taller - fit by width
-        drawWidth = VIDEO_WIDTH * zoom;
-        drawHeight = drawWidth / imgRatio;
+        drawImage(img, finalZoom, panAmount, 1);
       }
-      
-      const x = (VIDEO_WIDTH - drawWidth) / 2 + panAmount;
-      const y = (VIDEO_HEIGHT - drawHeight) / 2;
-      
-      ctx.drawImage(img, x, y, drawWidth, drawHeight);
       
       // Add subtle vignette
       const gradient = ctx.createRadialGradient(
@@ -430,28 +581,94 @@
       
       // Add property info overlay at bottom
       if (propertyData) {
-        // Semi-transparent background
-        const overlayHeight = 200;
-        const overlayGradient = ctx.createLinearGradient(0, VIDEO_HEIGHT - overlayHeight, 0, VIDEO_HEIGHT);
-        overlayGradient.addColorStop(0, 'rgba(0,0,0,0)');
-        overlayGradient.addColorStop(0.5, 'rgba(0,0,0,0.7)');
-        overlayGradient.addColorStop(1, 'rgba(0,0,0,0.9)');
-        ctx.fillStyle = overlayGradient;
-        ctx.fillRect(0, VIDEO_HEIGHT - overlayHeight, VIDEO_WIDTH, overlayHeight);
-        
-        // Address
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 48px -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        const address = propertyData.address || 'Beautiful Property';
-        ctx.fillText(address.substring(0, 30), VIDEO_WIDTH / 2, VIDEO_HEIGHT - 100);
-        
-        // Price and size
-        ctx.font = '36px -apple-system, sans-serif';
-        ctx.fillStyle = '#ccc';
-        const details = [propertyData.price, propertyData.size].filter(Boolean).join(' • ');
-        ctx.fillText(details, VIDEO_WIDTH / 2, VIDEO_HEIGHT - 50);
+        drawOverlay();
       }
+      
+      // Update beat indicator
+      if (beatInfo.isOnBeat) {
+        beatIndicator.classList.add('pulse');
+        setTimeout(() => beatIndicator.classList.remove('pulse'), 100);
+      }
+    }
+    
+    function drawImage(img, zoom, panX, alpha) {
+      ctx.globalAlpha = alpha;
+      
+      // Calculate dimensions to cover the canvas (crop to 9:16)
+      const imgRatio = img.width / img.height;
+      const canvasRatio = VIDEO_WIDTH / VIDEO_HEIGHT;
+      
+      let drawWidth, drawHeight;
+      if (imgRatio > canvasRatio) {
+        drawHeight = VIDEO_HEIGHT * zoom;
+        drawWidth = drawHeight * imgRatio;
+      } else {
+        drawWidth = VIDEO_WIDTH * zoom;
+        drawHeight = drawWidth / imgRatio;
+      }
+      
+      const x = (VIDEO_WIDTH - drawWidth) / 2 + panX;
+      const y = (VIDEO_HEIGHT - drawHeight) / 2;
+      
+      ctx.drawImage(img, x, y, drawWidth, drawHeight);
+      ctx.globalAlpha = 1;
+    }
+    
+    function drawTransition(img1, img2, progress, zoom, panX, style) {
+      switch (style) {
+        case 'fade':
+          // Crossfade
+          drawImage(img1, zoom, panX, 1 - progress);
+          drawImage(img2, 1.15, 0, progress);
+          break;
+          
+        case 'zoom':
+          // Zoom punch - first image zooms out, second zooms in
+          const zoomOut = zoom * (1 + progress * 0.3);
+          const zoomIn = 1.3 - progress * 0.15;
+          drawImage(img1, zoomOut, panX, 1 - progress);
+          drawImage(img2, zoomIn, 0, progress);
+          break;
+          
+        case 'slide':
+          // Slide - images slide horizontally
+          const slideOffset = progress * VIDEO_WIDTH;
+          ctx.save();
+          ctx.translate(-slideOffset, 0);
+          drawImage(img1, zoom, panX, 1);
+          ctx.restore();
+          ctx.save();
+          ctx.translate(VIDEO_WIDTH - slideOffset, 0);
+          drawImage(img2, 1.15, 0, 1);
+          ctx.restore();
+          break;
+          
+        default:
+          drawImage(img1, zoom, panX, 1);
+      }
+    }
+    
+    function drawOverlay() {
+      const overlayHeight = 200;
+      const overlayGradient = ctx.createLinearGradient(0, VIDEO_HEIGHT - overlayHeight, 0, VIDEO_HEIGHT);
+      overlayGradient.addColorStop(0, 'rgba(0,0,0,0)');
+      overlayGradient.addColorStop(0.5, 'rgba(0,0,0,0.7)');
+      overlayGradient.addColorStop(1, 'rgba(0,0,0,0.9)');
+      ctx.fillStyle = overlayGradient;
+      ctx.fillRect(0, VIDEO_HEIGHT - overlayHeight, VIDEO_WIDTH, overlayHeight);
+      
+      // Address
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 48px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      const address = propertyData.address || 'Beautiful Property';
+      ctx.fillText(address.substring(0, 30), VIDEO_WIDTH / 2, VIDEO_HEIGHT - 100);
+      
+      // Price and size
+      ctx.font = '36px -apple-system, sans-serif';
+      ctx.fillStyle = '#ccc';
+      const details = [propertyData.price, propertyData.size].filter(Boolean).join(' • ');
+      ctx.fillText(details, VIDEO_WIDTH / 2, VIDEO_HEIGHT - 50);
     }
     
     function togglePreview() {
@@ -465,6 +682,9 @@
     function startPreview() {
       if (images.length === 0) return;
       
+      const settings = getSettings();
+      const totalFrames = settings.duration * FPS;
+      
       isPlaying = true;
       currentFrame = 0;
       document.getElementById('play-btn').textContent = '⏸ Pause';
@@ -472,16 +692,6 @@
       bgMusic.volume = 0.3;
       bgMusic.play().catch(() => {});
       
-      function animate() {
-        if (!isPlaying) return;
-        
-        drawFrame(currentFrame);
-        currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
-        
-        animationId = requestAnimationFrame(animate);
-      }
-      
-      // Throttle to target FPS
       let lastTime = 0;
       const frameInterval = 1000 / FPS;
       
@@ -492,7 +702,7 @@
         if (delta >= frameInterval) {
           lastTime = timestamp - (delta % frameInterval);
           drawFrame(currentFrame);
-          currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
+          currentFrame = (currentFrame + 1) % totalFrames;
         }
         
         animationId = requestAnimationFrame(animateThrottled);
@@ -517,22 +727,26 @@
         return;
       }
       
+      const settings = getSettings();
+      const totalFrames = settings.duration * FPS;
+      
       stopPreview();
       showStatus('Generating video... This may take a minute.', false);
       document.getElementById('generate-btn').disabled = true;
       
       try {
-        // Use MediaRecorder with canvas
         const stream = canvas.captureStream(FPS);
         
-        // Add audio track
-        const audioContext = new AudioContext();
+        // Set up audio
+        if (!audioContext) {
+          audioContext = new AudioContext();
+        }
+        
         const audioSource = audioContext.createMediaElementSource(bgMusic);
         const audioDestination = audioContext.createMediaStreamDestination();
         audioSource.connect(audioDestination);
         audioSource.connect(audioContext.destination);
         
-        // Combine video and audio streams
         const combinedStream = new MediaStream([
           ...stream.getVideoTracks(),
           ...audioDestination.stream.getAudioTracks()
@@ -556,16 +770,14 @@
           audioSource.disconnect();
         };
         
-        // Start recording
         mediaRecorder.start();
         bgMusic.currentTime = 0;
         bgMusic.volume = 0.5;
         bgMusic.play();
         
-        // Render all frames
         let frame = 0;
         const renderInterval = setInterval(() => {
-          if (frame >= TOTAL_FRAMES) {
+          if (frame >= totalFrames) {
             clearInterval(renderInterval);
             mediaRecorder.stop();
             return;
@@ -573,7 +785,7 @@
           
           drawFrame(frame);
           frame++;
-          setProgress((frame / TOTAL_FRAMES) * 100);
+          setProgress((frame / totalFrames) * 100);
         }, 1000 / FPS);
         
       } catch (error) {
@@ -589,7 +801,8 @@
       const url = URL.createObjectURL(videoBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `etuovi-video-${Date.now()}.webm`;
+      const address = propertyData?.address?.replace(/[^a-zA-Z0-9]/g, '-') || 'property';
+      a.download = `etuovi-${address.substring(0, 30)}-${Date.now()}.webm`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -608,6 +821,17 @@
     function setProgress(percent) {
       document.getElementById('progress-fill').style.width = percent + '%';
     }
+    
+    // Update preview when settings change
+    document.getElementById('bpm-input').addEventListener('change', () => {
+      if (images.length > 0) drawFrame(currentFrame);
+    });
+    document.getElementById('duration-input').addEventListener('change', () => {
+      if (images.length > 0) drawFrame(currentFrame);
+    });
+    document.getElementById('beats-per-image').addEventListener('change', () => {
+      if (images.length > 0) drawFrame(currentFrame);
+    });
   </script>
 </body>
 </html>
