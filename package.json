@@ -2,5 +2,8 @@
   "name": "etuovi-video-editor",
   "version": "1.0.0",
   "description": "Create social media videos from Etuovi property listings",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "vercel": "^50.9.6"
+  }
 }
